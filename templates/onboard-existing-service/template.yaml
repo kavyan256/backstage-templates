@@ -1,0 +1,62 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: onboard-existing-service
+  title: Onboard Existing Service
+  description: Adds catalog-info.yaml to an existing repo
+spec:
+  owner: user:guest
+  type: service
+
+  parameters:
+    - title: Service Info
+      required: [serviceName, owner, lifecycle]
+      properties:
+        serviceName:
+          type: string
+          title: Service Name
+        description:
+          type: string
+          title: Description
+        owner:
+          type: string
+          title: Your GitHub username
+        lifecycle:
+          type: string
+          title: Lifecycle
+          enum: [experimental, production, deprecated]
+          default: experimental
+        repoUrl:
+          type: string
+          title: Target Repository
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts: [github.com]
+
+  steps:
+    - id: fetch
+      name: Generate Files
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          serviceName: ${{ parameters.serviceName }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          lifecycle: ${{ parameters.lifecycle }}
+
+    - id: pr
+      name: Open Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        title: "chore: add Backstage catalog files"
+        branchName: add-backstage-catalog
+        description: "Adds catalog-info.yaml for Backstage onboarding"
+
+    - id: register
+      name: Register Component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.pr.output.remoteUrl }}
+        catalogInfoPath: /catalog-info.yaml

@@ -1,0 +1,7 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: all-templates
+spec:
+  targets:
+    - ./templates/onboard-existing-service/template.yaml
