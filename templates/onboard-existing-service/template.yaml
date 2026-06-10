@@ -3,29 +3,82 @@ kind: Template
 metadata:
   name: onboard-existing-service
   title: Onboard Existing Service
-  description: Adds catalog-info.yaml to an existing repo
+  description: Adds catalog-info.yaml and TechDocs to an existing repo
+  tags:
+    - onboarding
+    - catalog
+    - techdocs
 spec:
-  owner: user:guest
+  owner: user:kavyan256
   type: service
 
   parameters:
-    - title: Service Info
-      required: [serviceName, owner, lifecycle]
+    - title: Basic Info
+      required: [serviceName, description, owner, lifecycle]
       properties:
         serviceName:
           type: string
           title: Service Name
+          description: Lowercase, no spaces (e.g. auth-service)
         description:
           type: string
-          title: Description
+          title: Short Description
         owner:
           type: string
-          title: Your GitHub username
+          title: Owner (GitHub username)
+          default: kavyan256
         lifecycle:
           type: string
           title: Lifecycle
           enum: [experimental, production, deprecated]
           default: experimental
+        serviceType:
+          type: string
+          title: Service Type
+          enum: [service, website, library, tool]
+          default: service
+
+    - title: Tech Stack
+      required: [language]
+      properties:
+        language:
+          type: string
+          title: Primary Language
+          enum: [nodejs, typescript, go, rust, c, cpp, python, other]
+        framework:
+          type: string
+          title: Framework (optional)
+          description: e.g. Express, Gin, Actix, React
+        dependencies:
+          type: string
+          title: Key Dependencies
+          description: Comma separated (e.g. postgres, redis, kafka)
+        hasApi:
+          type: boolean
+          title: Does this service expose an API?
+          default: false
+
+    - title: Setup & Runbook
+      properties:
+        setupSteps:
+          type: string
+          title: Setup Steps
+          description: How to run this service locally
+          ui:widget: textarea
+          ui:options:
+            rows: 5
+        envVars:
+          type: string
+          title: Required Environment Variables
+          description: Comma separated (e.g. DATABASE_URL, API_KEY)
+        port:
+          type: string
+          title: Default Port
+          description: e.g. 3000, 8080
+
+    - title: Repository
+      required: [repoUrl]
+      properties:
         repoUrl:
           type: string
           title: Target Repository
@@ -44,19 +97,39 @@ spec:
           description: ${{ parameters.description }}
           owner: ${{ parameters.owner }}
           lifecycle: ${{ parameters.lifecycle }}
+          serviceType: ${{ parameters.serviceType }}
+          language: ${{ parameters.language }}
+          framework: ${{ parameters.framework }}
+          dependencies: ${{ parameters.dependencies }}
+          hasApi: ${{ parameters.hasApi }}
+          setupSteps: ${{ parameters.setupSteps }}
+          envVars: ${{ parameters.envVars }}
+          port: ${{ parameters.port }}
 
     - id: pr
       name: Open Pull Request
       action: publish:github:pull-request
       input:
         repoUrl: ${{ parameters.repoUrl }}
-        title: "chore: add Backstage catalog files"
-        branchName: add-backstage-catalog
-        description: "Adds catalog-info.yaml for Backstage onboarding"
+        title: "chore: add Backstage catalog and TechDocs files"
+        branchName: add-backstage-onboarding
+        description: |
+          This PR adds:
+          - `catalog-info.yaml` for Backstage catalog registration
+          - `docs/` folder with TechDocs setup
+          - `mkdocs.yml` for TechDocs rendering
 
     - id: register
-      name: Register Component
+      name: Register in Catalog
       action: catalog:register
       input:
         repoContentsUrl: ${{ steps.pr.output.remoteUrl }}
         catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Pull Request
+        url: ${{ steps.pr.output.remoteUrl }}
+      - title: View in Catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
