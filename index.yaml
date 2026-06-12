@@ -5,3 +5,4 @@ metadata:
 spec:
   targets:
     - ./templates/onboard-existing-service/template.yaml
+    - ./templates/nodejs-express-service/template.yaml
